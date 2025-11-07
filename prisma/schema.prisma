@@ -1,0 +1,495 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model accords_mets {
+  id              Int                        @id @default(autoincrement())
+  nom             String                     @unique(map: "nom") @db.VarChar(100)
+  cat_gorie       accords_mets_cat_gorie?    @map("catégorie")
+  sous_cat_gorie  String?                    @map("sous_catégorie") @db.VarChar(100)
+  description     String?                    @db.Text
+  force_accord    accords_mets_force_accord? @default(moyen)
+  exemples        String?                    @db.Text
+  created_at      DateTime?                  @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?                  @default(now()) @db.Timestamp(0)
+  produit_accords produit_accords[]
+
+  @@index([cat_gorie], map: "idx_categorie")
+}
+
+model avis_clients {
+  id             Int                  @id @default(autoincrement())
+  produit_id     Int
+  utilisateur_id Int
+  note           Int                  @db.TinyInt
+  commentaire    String?              @db.Text
+  avantages      String?              @db.Text
+  inconv_nients  String?              @map("inconvénients") @db.Text
+  recommand_     Boolean?             @map("recommandé")
+  statut         avis_clients_statut? @default(en_attente)
+  cr___le        DateTime?            @default(now()) @map("créé_le") @db.Timestamp(0)
+  modifi__le     DateTime?            @default(now()) @map("modifié_le") @db.Timestamp(0)
+  produits       produits             @relation(fields: [produit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "avis_clients_ibfk_1")
+  utilisateurs   utilisateurs         @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "avis_clients_ibfk_2")
+
+  @@unique([produit_id, utilisateur_id], map: "unique_avis")
+  @@index([cr___le], map: "idx_date")
+  @@index([note], map: "idx_note")
+  @@index([statut], map: "idx_statut")
+  @@index([utilisateur_id], map: "utilisateur_id")
+}
+
+model cepages {
+  id               Int                   @id @default(autoincrement())
+  nom              String                @unique(map: "nom") @db.VarChar(100)
+  type             cepages_type?
+  couleur_baie     cepages_couleur_baie?
+  origine          String?               @db.VarChar(100)
+  caract_ristiques String?               @map("caractéristiques") @db.Text
+  ar_mes_typiques  String?               @map("arômes_typiques") @db.Text
+  maturit_         cepages_maturit_?     @map("maturité")
+  vigoure          cepages_vigoure?
+  created_at       DateTime?             @default(now()) @db.Timestamp(0)
+  updated_at       DateTime?             @default(now()) @db.Timestamp(0)
+  produit_cepages  produit_cepages[]
+}
+
+model champagne_details {
+  id                     Int                                       @id @default(autoincrement())
+  produit_id             Int                                       @unique(map: "produit_id")
+  type_champagne         champagne_details_type_champagne?
+  style_champagne        champagne_details_style_champagne?
+  niveau_sucre           String?                                   @db.VarChar(50)
+  millesime              Int?                                      @db.Year
+  maison                 String?                                   @db.VarChar(100)
+  m_thode__laboration    champagne_details_m_thode__laboration?    @default(traditionnelle) @map("méthode_élaboration")
+  temps_prise_mousse     String?                                   @db.VarChar(50)
+  caract_ristiques_bulle champagne_details_caract_ristiques_bulle? @default(fine) @map("caractéristiques_bulle")
+  conseils_service       String?                                   @db.Text
+  produits               produits                                  @relation(fields: [produit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "champagne_details_ibfk_1")
+
+  @@index([style_champagne], map: "idx_style_champagne")
+  @@index([type_champagne], map: "idx_type_champagne")
+}
+
+model classifications {
+  id             Int                     @id @default(autoincrement())
+  nom            String                  @unique(map: "nom") @db.VarChar(100)
+  niveau         classifications_niveau?
+  region_id      Int?
+  description    String?                 @db.Text
+  ann_e_creation Int?                    @map("année_creation") @db.Year
+  regions        regions?                @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "classifications_ibfk_1")
+  produits       produits[]
+
+  @@index([niveau], map: "idx_niveau")
+  @@index([region_id], map: "region_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model cognac_details {
+  id                           Int                             @id @default(autoincrement())
+  produit_id                   Int                             @unique(map: "produit_id")
+  cat_gorie__ge                cognac_details_cat_gorie__ge?   @map("catégorie_âge")
+  r_gion_cognac                cognac_details_r_gion_cognac?   @map("région_cognac")
+  appellation                  String?                         @db.VarChar(100)
+  ge_minimum                   Int?                            @map("âge_minimum")
+  m_thode__l_vage              cognac_details_m_thode__l_vage? @map("méthode_élévage")
+  caract_ristiques_aromatiques String?                         @map("caractéristiques_aromatiques") @db.Text
+  temp_rature_service          String?                         @default("20°C") @map("température_service") @db.VarChar(50)
+  produits                     produits                        @relation(fields: [produit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "cognac_details_ibfk_1")
+
+  @@index([cat_gorie__ge], map: "idx_categorie_age")
+  @@index([r_gion_cognac], map: "idx_region_cognac")
+}
+
+model domaines {
+  id              Int        @id @default(autoincrement())
+  nom             String     @db.VarChar(255)
+  region_id       Int
+  propri_taire    String?    @map("propriétaire") @db.VarChar(255)
+  ann_e_fondation Int?       @map("année_fondation") @db.Year
+  description     String?    @db.Text
+  adresse         String?    @db.Text
+  site_web        String?    @db.VarChar(255)
+  created_at      DateTime?  @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?  @default(now()) @db.Timestamp(0)
+  regions         regions    @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "domaines_ibfk_1")
+  produits        produits[]
+
+  @@index([region_id], map: "idx_region")
+}
+
+model favoris {
+  id             Int          @id @default(autoincrement())
+  utilisateur_id Int
+  produit_id     Int
+  cr___le        DateTime?    @default(now()) @map("créé_le") @db.Timestamp(0)
+  utilisateurs   utilisateurs @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "favoris_ibfk_1")
+  produits       produits     @relation(fields: [produit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "favoris_ibfk_2")
+
+  @@unique([utilisateur_id, produit_id], map: "unique_favori")
+  @@index([utilisateur_id], map: "idx_utilisateur")
+  @@index([produit_id], map: "produit_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model historique_stocks {
+  id                Int                               @id @default(autoincrement())
+  produit_id        Int
+  ancienne_quantit_ Int?                              @map("ancienne_quantité")
+  nouvelle_quantit_ Int?                              @map("nouvelle_quantité")
+  type_mouvement    historique_stocks_type_mouvement?
+  raison            String?                           @db.VarChar(255)
+  r_f_rence         String?                           @map("référence") @db.VarChar(100)
+  co_t_unitaire     Decimal?                          @map("coût_unitaire") @db.Decimal(10, 2)
+  cr___par          Int?                              @map("créé_par")
+  cr___le           DateTime?                         @default(now()) @map("créé_le") @db.Timestamp(0)
+  produits          produits                          @relation(fields: [produit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "historique_stocks_ibfk_1")
+
+  @@index([cr___le], map: "idx_date")
+  @@index([r_f_rence], map: "idx_référence")
+  @@index([type_mouvement], map: "idx_type_mouvement")
+  @@index([produit_id], map: "produit_id")
+}
+
+model produit_accords {
+  id           Int                           @id @default(autoincrement())
+  produit_id   Int
+  accord_id    Int
+  force_accord produit_accords_force_accord? @default(bon)
+  commentaire  String?                       @db.Text
+  produits     produits                      @relation(fields: [produit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "produit_accords_ibfk_1")
+  accords_mets accords_mets                  @relation(fields: [accord_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "produit_accords_ibfk_2")
+
+  @@unique([produit_id, accord_id], map: "unique_produit_accord")
+  @@index([accord_id], map: "idx_accord")
+}
+
+model produit_cepages {
+  id            Int                   @id @default(autoincrement())
+  produit_id    Int
+  cepage_id     Int
+  pourcentage   Decimal?              @db.Decimal(5, 2)
+  ordre_m_lange Int?                  @map("ordre_mélange")
+  r_le          produit_cepages_r_le? @default(assemblage) @map("rôle")
+  produits      produits              @relation(fields: [produit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "produit_cepages_ibfk_1")
+  cepages       cepages               @relation(fields: [cepage_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "produit_cepages_ibfk_2")
+
+  @@unique([produit_id, cepage_id], map: "unique_produit_cepage")
+  @@index([cepage_id], map: "idx_cepage")
+  @@index([r_le], map: "idx_role")
+}
+
+model produit_images {
+  id               Int                        @id @default(autoincrement())
+  produit_id       Int
+  url              String                     @db.Text
+  est_principale   Boolean?                   @default(false)
+  texte_alternatif String?                    @db.VarChar(255)
+  ordre_affichage  Int?                       @default(0)
+  type_image       produit_images_type_image? @default(bouteille)
+  created_at       DateTime?                  @default(now()) @db.Timestamp(0)
+  produits         produits                   @relation(fields: [produit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "produit_images_ibfk_1")
+
+  @@index([ordre_affichage], map: "idx_ordre")
+  @@index([est_principale], map: "idx_principale")
+  @@index([type_image], map: "idx_type")
+  @@index([produit_id], map: "produit_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model produits {
+  id                   Int                 @id @default(autoincrement())
+  nom                  String              @db.VarChar(255)
+  type                 produits_type
+  cat_gorie            String?             @map("catégorie") @db.VarChar(100)
+  region_id            Int
+  domaine_id           Int?
+  classification_id    Int?
+  style                String?             @db.VarChar(100)
+  appellation          String?             @db.VarChar(150)
+  teneur_alcool        Decimal?            @db.Decimal(4, 2)
+  temp_rature_service  String?             @map("température_service") @db.VarChar(50)
+  taille_bouteille     String?             @default("75cl") @db.VarChar(20)
+  prix                 Decimal?            @db.Decimal(10, 2)
+  cote                 Decimal?            @db.Decimal(3, 1)
+  millesime            Int?                @db.Year
+  garder_jusqu_        Int?                @map("garder_jusquà") @db.Year
+  allerg_nes           String?             @map("allergènes") @db.Text
+  description          String?             @db.Text
+  caract_ristiques     String?             @map("caractéristiques") @db.Text
+  conseils_d_gustation String?             @map("conseils_dégustation") @db.Text
+  ordre_affichage      Int?
+  disponible           Boolean?            @default(true)
+  quantit__stock       Int?                @map("quantité_stock")
+  seuil_alerte         Int?                @default(5)
+  promotion            Decimal?            @db.Decimal(5, 2)
+  date_promotion       DateTime?           @db.Date
+  bio                  Boolean?            @default(false)
+  v_g_talien           Boolean?            @default(false) @map("végétalien")
+  created_at           DateTime?           @default(now()) @db.Timestamp(0)
+  updated_at           DateTime?           @default(now()) @db.Timestamp(0)
+  avis_clients         avis_clients[]
+  champagne_details    champagne_details?
+  cognac_details       cognac_details?
+  favoris              favoris[]
+  historique_stocks    historique_stocks[]
+  produit_accords      produit_accords[]
+  produit_cepages      produit_cepages[]
+  produit_images       produit_images[]
+  regions              regions             @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produits_ibfk_1")
+  domaines             domaines?           @relation(fields: [domaine_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produits_ibfk_2")
+  classifications      classifications?    @relation(fields: [classification_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produits_ibfk_3")
+
+  @@index([domaine_id], map: "domaine_id")
+  @@index([bio], map: "idx_bio")
+  @@index([classification_id], map: "idx_classification")
+  @@index([disponible], map: "idx_disponible")
+  @@index([millesime], map: "idx_millesime")
+  @@index([ordre_affichage], map: "idx_ordre")
+  @@index([prix], map: "idx_prix")
+  @@index([promotion], map: "idx_promotion")
+  @@index([region_id], map: "idx_region")
+  @@index([style], map: "idx_style")
+  @@index([type], map: "idx_type")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model recherches_sauvegard_es {
+  id             Int          @id @default(autoincrement())
+  utilisateur_id Int
+  nom_recherche  String       @db.VarChar(255)
+  param_tres     Json         @map("paramètres")
+  cr___le        DateTime?    @default(now()) @map("créé_le") @db.Timestamp(0)
+  modifi__le     DateTime?    @default(now()) @map("modifié_le") @db.Timestamp(0)
+  utilisateurs   utilisateurs @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "recherches_sauvegardées_ibfk_1")
+
+  @@index([utilisateur_id], map: "idx_utilisateur")
+  @@map("recherches_sauvegardées")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model regions {
+  id              Int               @id @default(autoincrement())
+  nom             String            @unique(map: "nom") @db.VarChar(100)
+  pays            String?           @default("France") @db.VarChar(100)
+  description     String?           @db.Text
+  climat          regions_climat?
+  superficie      Decimal?          @db.Decimal(10, 2)
+  created_at      DateTime?         @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?         @default(now()) @db.Timestamp(0)
+  classifications classifications[]
+  domaines        domaines[]
+  produits        produits[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model utilisateurs {
+  id                      Int                       @id @default(autoincrement())
+  email                   String                    @unique(map: "email") @db.VarChar(255)
+  mot_de_passe_hash       String                    @db.VarChar(255)
+  nom                     String                    @db.VarChar(100)
+  pr_nom                  String                    @map("prénom") @db.VarChar(100)
+  r_le                    utilisateurs_r_le?        @default(client) @map("rôle")
+  t_l_phone               String?                   @map("téléphone") @db.VarChar(20)
+  adresse                 String?                   @db.Text
+  ville                   String?                   @db.VarChar(100)
+  code_postal             String?                   @db.VarChar(10)
+  pays                    String?                   @default("France") @db.VarChar(100)
+  actif                   Boolean?                  @default(true)
+  derni_re_connexion      DateTime?                 @map("dernière_connexion") @db.DateTime(0)
+  pr_f_rences             Json?                     @map("préférences")
+  cr___le                 DateTime?                 @default(now()) @map("créé_le") @db.Timestamp(0)
+  modifi__le              DateTime?                 @default(now()) @map("modifié_le") @db.Timestamp(0)
+  avis_clients            avis_clients[]
+  favoris                 favoris[]
+  recherches_sauvegard_es recherches_sauvegard_es[]
+
+  @@index([actif], map: "idx_actif")
+  @@index([email], map: "idx_email")
+  @@index([r_le], map: "idx_rôle")
+}
+
+enum accords_mets_cat_gorie {
+  viande
+  poisson
+  crustac_s   @map("crustacés")
+  volaille
+  v_g_tarien  @map("végétarien")
+  fromage
+  p_tes       @map("pâtes")
+  charcuterie
+  dessert
+  ap_ritif    @map("apéritif")
+
+  @@map("accords_mets_catégorie")
+}
+
+enum cepages_type {
+  rouge
+  blanc
+  ros_  @map("rosé")
+}
+
+enum champagne_details_type_champagne {
+  Brut
+  Extra_Brut @map("Extra Brut")
+  Sec
+  Demi_Sec   @map("Demi-Sec")
+  Doux
+}
+
+enum classifications_niveau {
+  Grand_Cru     @map("Grand Cru")
+  Premier_Cru   @map("Premier Cru")
+  Deuxi_me_Cru  @map("Deuxième Cru")
+  Cru_Class_    @map("Cru Classé")
+  Cru_Bourgeois @map("Cru Bourgeois")
+  Petite_crue   @map("Petite crue")
+  Autre
+}
+
+enum cognac_details_cat_gorie__ge {
+  VS
+  VSOP
+  XO
+  Hors_d__ge @map("Hors d'Âge")
+  Napol_on   @map("Napoléon")
+
+  @@map("cognac_details_catégorie_âge")
+}
+
+enum produits_type {
+  vin
+  champagne
+  cognac
+}
+
+enum cepages_couleur_baie {
+  noire
+  blanche
+  grise
+  rose
+}
+
+enum champagne_details_style_champagne {
+  Blanc_de_Blancs @map("Blanc de Blancs")
+  Blanc_de_Noirs  @map("Blanc de Noirs")
+  Ros_            @map("Rosé")
+  Cuv_e_Prestige  @map("Cuvée Prestige")
+  Mill_sim_       @map("Millésimé")
+  Non_Mill_sim_   @map("Non Millésimé")
+}
+
+enum cognac_details_r_gion_cognac {
+  Grande_Champagne @map("Grande Champagne")
+  Petite_Champagne @map("Petite Champagne")
+  Borderies
+  Fins_Bois        @map("Fins Bois")
+  Bons_Bois        @map("Bons Bois")
+  Bois_Ordinaires  @map("Bois Ordinaires")
+
+  @@map("cognac_details_région_cognac")
+}
+
+enum produit_accords_force_accord {
+  excellent
+  bon
+  correct
+}
+
+enum historique_stocks_type_mouvement {
+  entr_e     @map("entrée")
+  sortie
+  ajustement
+  inventaire
+}
+
+enum regions_climat {
+  oc_anique     @map("océanique")
+  continental
+  m_diterran_en @map("méditerranéen")
+  montagnard
+}
+
+enum accords_mets_force_accord {
+  l_ger @map("léger")
+  moyen
+  fort
+}
+
+enum produit_cepages_r_le {
+  principal
+  secondaire
+  assemblage
+
+  @@map("produit_cepages_rôle")
+}
+
+enum utilisateurs_r_le {
+  administrateur
+  gestionnaire
+  vendeur
+  client
+
+  @@map("utilisateurs_rôle")
+}
+
+enum cognac_details_m_thode__l_vage {
+  f_ts_neufs  @map("fûts_neufs")
+  f_ts_usag_s @map("fûts_usagés")
+  solera
+
+  @@map("cognac_details_méthode_élévage")
+}
+
+enum produit_images_type_image {
+  bouteille
+  tiquette  @map("étiquette")
+  verre
+  domaine
+  carte
+}
+
+enum cepages_maturit_ {
+  pr_coce @map("précoce")
+  tardive
+  moyenne
+
+  @@map("cepages_maturité")
+}
+
+enum champagne_details_m_thode__laboration {
+  traditionnelle
+  charmat
+  ancestrale
+
+  @@map("champagne_details_méthode_élaboration")
+}
+
+enum avis_clients_statut {
+  en_attente
+  approuv_   @map("approuvé")
+  rejet_     @map("rejeté")
+}
+
+enum cepages_vigoure {
+  faible
+  moyenne
+  forte
+}
+
+enum champagne_details_caract_ristiques_bulle {
+  fine
+  persistante
+  cr_meuse    @map("crémeuse")
+
+  @@map("champagne_details_caractéristiques_bulle")
+}
