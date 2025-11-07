@@ -4,6 +4,8 @@ import megaMenuRoutes from "./routes/megamenu";
 import { customCors, prisma } from "./utils";
 import filtersRoutes from "./routes/filters";
 import productsRoutes from "./routes/products.routes";
+import "dotenv/config";
+import { env } from "prisma/config";
 
 const app = new Hono();
 
@@ -31,7 +33,7 @@ app.onError((err, c) => {
   return c.text("Erreur interne du serveur (vérifiez la console)", 500);
 });
 
-const port = 4545;
+const port = parseInt(env("PORT"));
 console.log(`🚀 Server running at http://localhost:${port}`);
 
 testPrismaConnection().then(() => {
