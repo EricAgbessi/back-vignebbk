@@ -8,8 +8,8 @@ export interface ProductFilters {
   cepages?: number[];
   styles?: string[];
   millesimes?: number[];
-  prixRange?: { min: number; max: number };
-  alcoolRange?: { min: number; max: number };
+  prixRange?: { min?: number; max?: number };
+  alcoolRange?: { min?: number; max?: number };
   bio?: boolean;
   vegetalien?: boolean;
   promotion?: boolean;

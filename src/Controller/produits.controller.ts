@@ -1,12 +1,11 @@
 // controllers/products.controller.ts
-import { Request, Response } from "express";
 import { ProductsService, ProductFilters } from "../services/products.service";
 
 const productsService = new ProductsService();
 
 export class ProductsController {
   // Produits en vedette
-  async getFeaturedProducts(req: Request, res: Response) {
+  async getFeaturedProducts(req: any, res: any) {
     try {
       const limit = parseInt(req.query.limit as string) || 12;
 
@@ -30,7 +29,7 @@ export class ProductsController {
   }
 
   // Produits avec filtres
-  async getFilteredProducts(req: Request, res: Response) {
+  async getFilteredProducts(req: any, res: any) {
     try {
       const filters: ProductFilters = {
         types: req.query.types
@@ -110,7 +109,7 @@ export class ProductsController {
   }
 
   // Produit par ID
-  async getProductById(req: Request, res: Response) {
+  async getProductById(req: any, res: any) {
     try {
       const id = parseInt(req.params.id);
 
