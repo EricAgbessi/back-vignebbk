@@ -31,6 +31,9 @@ jobs:
       # ÉTAPE SPÉCIFIQUE AU BACKEND
       - name: Generate Prisma client
         run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          PORT: ${{ secrets.PORT }}
 
       # ÉTAPE CRITIQUE DE QUALITÉ
       - name: Build App
