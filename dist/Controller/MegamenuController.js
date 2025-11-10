@@ -116,7 +116,7 @@ const getPopularCepages = async () => {
 };
 exports.getPopularCepages = getPopularCepages;
 // Fonction utilitaire pour formater les URLs
-const formatUrl = (type, value, label) => {
+const formatUrl = (type, value,id,label,) => {
     const slug = String(value)
         .toLowerCase()
         .normalize("NFD")
@@ -140,7 +140,12 @@ const formatUrl = (type, value, label) => {
         cognac_region: "spiritueux/cognac/region",
         spiritueux_type: "spiritueux",
     };
-    return `/${basePaths[type] || type}/${slug}`;
+    if(id!==undefined && id!==null && id!==""){
+        console.log(`/${basePaths[type] || type}/${slug}/${id}`)
+        return `/${basePaths[type] || type}/${slug}/${id}`;
+    }else{
+        return `/${basePaths[type] || type}/${slug}`;
+    }
 };
 const getWineMegaMenu = async () => {
     try {
@@ -172,7 +177,7 @@ const getWineMegaMenu = async () => {
                         id: region.id,
                         label: region.name,
                         count: region.count,
-                        url: formatUrl("region", region.name),
+                        url: formatUrl("region", region.name, id=region.id),
                     })),
                 },
                 {
@@ -485,7 +490,7 @@ const getAllMegaMenus = async () => {
             (0, exports.getChampagneMegaMenu)(),
             (0, exports.getSpiritsMegaMenu)(),
         ]);
-        console.log(wines, grandWines, champagnes, spirits);
+       // console.log(wines, grandWines, champagnes, spirits);
         return {
             VINS: wines,
             "GRANDS VINS": grandWines,

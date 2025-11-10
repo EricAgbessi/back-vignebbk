@@ -117,6 +117,7 @@ export const getPopularCepages = async () => {
 const formatUrl = (
   type: string,
   value: string | number,
+  id?: number,
   label?: string
 ): string => {
   const slug = String(value)
@@ -143,8 +144,11 @@ const formatUrl = (
     cognac_region: "spiritueux/cognac/region",
     spiritueux_type: "spiritueux",
   };
-
-  return `/${basePaths[type] || type}/${slug}`;
+  if (id !== undefined && id !== null) {
+    return `/${basePaths[type] || type}/${slug}/${id}`;
+  } else {
+    return `/${basePaths[type] || type}/${slug}`;
+  }
 };
 
 export const getWineMegaMenu = async () => {
@@ -179,7 +183,7 @@ export const getWineMegaMenu = async () => {
             id: region.id,
             label: region.name,
             count: region.count,
-            url: formatUrl("region", region.name),
+            url: formatUrl("region", region.name, region.id),
           })),
         },
         {
@@ -189,7 +193,7 @@ export const getWineMegaMenu = async () => {
             label: cepage.name,
             count: cepage.count,
             type: cepage.type,
-            url: formatUrl("cepage", cepage.name),
+            url: formatUrl("cepage", cepage.name, cepage.id),
           })),
         },
       ],
@@ -301,7 +305,7 @@ export const getGrandWinesMegaMenu = async () => {
           items: classifications.map((cls) => ({
             label: cls.nom,
             count: cls._count.produits,
-            url: formatUrl("classification", cls.nom),
+            url: formatUrl("classification", cls.nom, cls.id),
           })),
         },
         {
@@ -309,7 +313,7 @@ export const getGrandWinesMegaMenu = async () => {
           items: prestigiousDomains.map((domain) => ({
             label: domain.nom,
             count: domain._count.produits,
-            url: formatUrl("domaine", domain.nom),
+            url: formatUrl("domaine", domain.nom, domain?.id),
           })),
         },
         {
@@ -504,7 +508,7 @@ export const getAllMegaMenus = async () => {
       getSpiritsMegaMenu(),
     ]);
 
-    console.log(wines, grandWines, champagnes, spirits);
+    //console.log(wines, grandWines, champagnes, spirits);
 
     return {
       VINS: wines,

@@ -78,14 +78,6 @@ productsRoutes.get("/", async (c) => {
       message: "Produits filtrés récupérés avec succès",
     });
   } catch (error) {
-    console.log(
-      c.json({
-        success: false,
-        //@ts-ignore
-        message: error.message,
-        data: null,
-      })
-    );
     return c.json(
       {
         success: false,

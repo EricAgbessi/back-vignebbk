@@ -214,14 +214,46 @@ export class ProductsService {
           regions: true,
           domaines: true,
           classifications: true,
-          produit_cepages: { include: { cepages: true } },
-          produit_images: { orderBy: { ordre_affichage: "asc" } },
+          produit_cepages: {
+            include: {
+              cepages: true,
+            },
+            orderBy: { ordre_m_lange: "asc" },
+          },
+          produit_images: {
+            orderBy: { ordre_affichage: "asc" },
+          },
           avis_clients: {
             where: { statut: "approuv_" },
-            include: { utilisateurs: { select: { nom: true, pr_nom: true } } },
+            include: {
+              utilisateurs: {
+                select: {
+                  nom: true,
+                  pr_nom: true,
+                },
+              },
+            },
             orderBy: { cr___le: "desc" },
           },
-          produit_accords: { include: { accords_mets: true } },
+          produit_accords: {
+            include: {
+              accords_mets: true,
+            },
+          },
+          // Inclure les détails spécifiques selon le type
+          champagne_details: true,
+          cognac_details: true,
+          // Inclure les favoris pour statistiques
+          favoris: {
+            select: {
+              id: true,
+            },
+          },
+          // Inclure l'historique des stocks récent
+          historique_stocks: {
+            orderBy: { cr___le: "desc" },
+            take: 10,
+          },
         },
       });
 
@@ -229,10 +261,159 @@ export class ProductsService {
         throw new Error("Produit non trouvé");
       }
 
-      return this.formatProduct(product);
+      return this.formatProductWithDetails(product);
     } catch (error) {
       //@ts-ignore
       throw new Error(`Erreur récupération produit: ${error.message}`);
+    }
+  }
+
+  private formatProductWithDetails(product: any) {
+    // Calculer la note moyenne
+    const averageRating =
+      product.avis_clients.length > 0
+        ? product.avis_clients.reduce(
+            (acc: number, avis: any) => acc + avis.note,
+            0
+          ) / product.avis_clients.length
+        : null;
+
+    // Compter les favoris
+    const favoritesCount = product.favoris.length;
+
+    // Formater les cépages avec leurs rôles
+    const formattedCepages = product.produit_cepages.map((pc: any) => ({
+      id: pc.cepages.id,
+      nom: pc.cepages.nom,
+      type: pc.cepages.type,
+      pourcentage: pc.pourcentage,
+      ordre: pc.ordre_m_lange,
+      role: pc.r_le,
+    }));
+
+    // Formater les accords mets-vins
+    const formattedAccords = product.produit_accords.map((pa: any) => ({
+      id: pa.accords_mets.id,
+      nom: pa.accords_mets.nom,
+      categorie: pa.accords_mets.cat_gorie,
+      sousCategorie: pa.accords_mets.sous_cat_gorie,
+      forceAccord: pa.force_accord,
+      commentaire: pa.commentaire,
+    }));
+
+    // Formater les images
+    const formattedImages = product.produit_images.map((img: any) => ({
+      id: img.id,
+      url: img.url,
+      estPrincipale: img.est_principale,
+      texteAlternatif: img.texte_alternatif,
+      ordre: img.ordre_affichage,
+      type: img.type_image,
+    }));
+
+    // Formater les avis
+    const formattedAvis = product.avis_clients.map((avis: any) => ({
+      id: avis.id,
+      note: avis.note,
+      commentaire: avis.commentaire,
+      avantages: avis.avantages,
+      inconvenients: avis.inconv_nients,
+      recommande: avis.recommand_,
+      date: avis.cr___le,
+      utilisateur: {
+        nom: avis.utilisateurs.nom,
+        prenom: avis.utilisateurs.pr_nom,
+      },
+    }));
+
+    // Structure de base du produit
+    const baseProduct = {
+      id: product.id,
+      nom: product.nom,
+      type: product.type,
+      categorie: product.cat_gorie,
+      region: product.regions,
+      domaine: product.domaines,
+      classification: product.classifications,
+      style: product.style,
+      appellation: product.appellation,
+      teneurAlcool: product.teneur_alcool,
+      temperatureService: product.temp_rature_service,
+      tailleBouteille: product.taille_bouteille,
+      prix: product.prix,
+      cote: product.cote,
+      millesime: product.millesime,
+      garderJusqua: product.garder_jusqu_,
+      allergenes: product.allerg_nes,
+      description: product.description,
+      caracteristiques: product.caract_ristiques,
+      conseilsDegustation: product.conseils_d_gustation,
+      ordreAffichage: product.ordre_affichage,
+      disponible: product.disponible,
+      quantiteStock: product.quantit__stock,
+      seuilAlerte: product.seuil_alerte,
+      promotion: product.promotion,
+      datePromotion: product.date_promotion,
+      bio: product.bio,
+      vegetalien: product.v_g_talien,
+      createdAt: product.created_at,
+      updatedAt: product.updated_at,
+
+      // Données calculées
+      noteMoyenne: averageRating,
+      nombreAvis: product.avis_clients.length,
+      nombreFavoris: favoritesCount,
+
+      // Relations formatées
+      cepages: formattedCepages,
+      accords: formattedAccords,
+      images: formattedImages,
+      avis: formattedAvis,
+      historiqueStocks: product.historique_stocks,
+    };
+
+    // Ajouter les détails spécifiques selon le type
+    switch (product.type) {
+      case "champagne":
+        return {
+          ...baseProduct,
+          detailsChampagne: product.champagne_details
+            ? {
+                typeChampagne: product.champagne_details.type_champagne,
+                styleChampagne: product.champagne_details.style_champagne,
+                niveauSucre: product.champagne_details.niveau_sucre,
+                millesime: product.champagne_details.millesime,
+                maison: product.champagne_details.maison,
+                methodeElaboration:
+                  product.champagne_details.m_thode__laboration,
+                tempsPriseMousse: product.champagne_details.temps_prise_mousse,
+                caracteristiquesBulle:
+                  product.champagne_details.caract_ristiques_bulle,
+                conseilsService: product.champagne_details.conseils_service,
+              }
+            : null,
+        };
+
+      case "cognac":
+        return {
+          ...baseProduct,
+          detailsCognac: product.cognac_details
+            ? {
+                categorieAge: product.cognac_details.cat_gorie__ge,
+                regionCognac: product.cognac_details.r_gion_cognac,
+                appellation: product.cognac_details.appellation,
+                ageMinimum: product.cognac_details.ge_minimum,
+                methodeElevage: product.cognac_details.m_thode__l_vage,
+                caracteristiquesAromatiques:
+                  product.cognac_details.caract_ristiques_aromatiques,
+                temperatureService: product.cognac_details.temp_rature_service,
+              }
+            : null,
+        };
+
+      case "vin":
+      default:
+        return baseProduct;
     }
   }
 
