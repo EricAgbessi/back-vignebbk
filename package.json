@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-"dev": "tsx watch -r dotenv/config src/index.ts",
+  "dev": "tsx watch -r dotenv/config src/index.ts",
     "build": "tsc",
-    "start": "pm2-runtime start dist/index.js --name vignebbk-api",    
+    "start": "pm2-runtime start dist/index.js --name vignebbk-api"
   },
   "keywords": [],
   "author": "",
