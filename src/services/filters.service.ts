@@ -1,76 +1,66 @@
-// services/filters.service.ts
-
 import { prisma } from "../utils";
 
 export class FiltersService {
-  // Récupérer tous les filtres disponibles
   async getAllFilters() {
-    try {
-      const [
-        types,
-        categories,
-        regions,
-        domaines,
-        classifications,
-        cepages,
-        styles,
-        prixRanges,
-        millesimes,
-        alcoolRanges,
-        champagneTypes,
-        champagneStyles,
-        cognacCategories,
-        cognacRegions,
-        accordsCategories,
-      ] = await Promise.all([
-        this.getProductTypes(),
-        this.getCategories(),
-        this.getRegions(),
-        this.getDomaines(),
-        this.getClassifications(),
-        this.getCepages(),
-        this.getStyles(),
-        this.getPrixRanges(),
-        this.getMillesimes(),
-        this.getAlcoolRanges(),
-        this.getChampagneTypes(),
-        this.getChampagneStyles(),
-        this.getCognacCategories(),
-        this.getCognacRegions(),
-        this.getAccordsCategories(),
-      ]);
+    const [
+      types,
+      categories,
+      regions,
+      domaines,
+      classifications,
+      cepages,
+      styles,
+      prixRanges,
+      millesimes,
+      alcoolRanges,
+      champagneTypes,
+      champagneStyles,
+      cognacCategories,
+      cognacRegions,
+      accordsCategories,
+    ] = await Promise.all([
+      this.getProductTypes(),
+      this.getCategories(),
+      this.getRegions(),
+      this.getDomaines(),
+      this.getClassifications(),
+      this.getCepages(),
+      this.getStyles(),
+      this.getPrixRanges(),
+      this.getMillesimes(),
+      this.getAlcoolRanges(),
+      this.getChampagneTypes(),
+      this.getChampagneStyles(),
+      this.getCognacCategories(),
+      this.getCognacRegions(),
+      this.getAccordsCategories(),
+    ]);
 
-      return {
-        types,
-        categories,
-        regions,
-        domaines,
-        classifications,
-        cepages,
-        styles,
-        prixRanges,
-        millesimes,
-        alcoolRanges,
-        champagneTypes,
-        champagneStyles,
-        cognacCategories,
-        cognacRegions,
-        accordsCategories,
-        labels: {
-          bio: await this.getProductCount({ bio: true }),
-          vegetalien: await this.getProductCount({ v_g_talien: true }),
-          promotion: await this.getProductCount({ promotion: { gt: 0 } }),
-          disponible: await this.getProductCount({ disponible: true }),
-        },
-      };
-    } catch (error) {
-      throw new Error(
-        `Erreur lors de la récupération des filtres: ${(error as any)?.message}`
-      );
-    }
+    return {
+      types,
+      categories,
+      regions,
+      domaines,
+      classifications,
+      cepages,
+      styles,
+      prixRanges,
+      millesimes,
+      alcoolRanges,
+      champagneTypes,
+      champagneStyles,
+      cognacCategories,
+      cognacRegions,
+      accordsCategories,
+      labels: {
+        bio: await this.getProductCount({ bio: true }),
+        vegetalien: await this.getProductCount({ v_g_talien: true }),
+        promotion: await this.getProductCount({ promotion: { gt: 0 } }),
+        disponible: await this.getProductCount({ disponible: true }),
+      },
+    };
   }
 
-  // Types de produits
   private async getProductTypes() {
     const types = await prisma.produits.groupBy({
       by: ["type"],
@@ -85,7 +75,6 @@ export class FiltersService {
     }));
   }
 
-  // Catégories
   private async getCategories() {
     const categories = await prisma.produits.groupBy({
       by: ["cat_gorie"],
@@ -101,20 +90,15 @@ export class FiltersService {
     }));
   }
 
-  // Régions
   private async getRegions() {
     const regions = await prisma.regions.findMany({
-      where: {
-        produits: { some: {} },
-      },
+      where: { produits: { some: {} } },
       select: {
         id: true,
         nom: true,
         pays: true,
         climat: true,
-        _count: {
-          select: { produits: true },
-        },
+        _count: { select: { produits: true } },
       },
       orderBy: { nom: "asc" },
     });
@@ -128,23 +112,18 @@ export class FiltersService {
     }));
   }
 
-  // Domaines
   private async getDomaines() {
     const domaines = await prisma.domaines.findMany({
-      where: {
-        produits: { some: {} },
-      },
+      where: { produits: { some: {} } },
       select: {
         id: true,
         nom: true,
         propri_taire: true,
         ann_e_fondation: true,
-        _count: {
-          select: { produits: true },
-        },
+        _count: { select: { produits: true } },
       },
       orderBy: { nom: "asc" },
-      take: 50, // Limite pour éviter trop d'options
+      take: 50,
     });
 
     return domaines.map((domaine) => ({
@@ -156,19 +135,14 @@ export class FiltersService {
     }));
   }
 
-  // Classifications
   private async getClassifications() {
     const classifications = await prisma.classifications.findMany({
-      where: {
-        produits: { some: {} },
-      },
+      where: { produits: { some: {} } },
       select: {
         id: true,
         nom: true,
         niveau: true,
-        _count: {
-          select: { produits: true },
-        },
+        _count: { select: { produits: true } },
       },
       orderBy: { niveau: "asc" },
     });
@@ -181,21 +155,16 @@ export class FiltersService {
     }));
   }
 
-  // Cépages
   private async getCepages() {
     const cepages = await prisma.cepages.findMany({
-      where: {
-        produit_cepages: { some: {} },
-      },
+      where: { produit_cepages: { some: {} } },
       select: {
         id: true,
         nom: true,
         type: true,
         couleur_baie: true,
         origine: true,
-        _count: {
-          select: { produit_cepages: true },
-        },
+        _count: { select: { produit_cepages: true } },
       },
       orderBy: { nom: "asc" },
     });
@@ -210,7 +179,6 @@ export class FiltersService {
     }));
   }
 
-  // Styles
   private async getStyles() {
     const styles = await prisma.produits.groupBy({
       by: ["style"],
@@ -226,7 +194,6 @@ export class FiltersService {
     }));
   }
 
-  // Plages de prix
   private async getPrixRanges() {
     const prixStats = await prisma.produits.aggregate({
       _min: { prix: true },
@@ -263,7 +230,6 @@ export class FiltersService {
     };
   }
 
-  // Millésimes
   private async getMillesimes() {
     const millesimes = await prisma.produits.groupBy({
       by: ["millesime"],
@@ -279,7 +245,6 @@ export class FiltersService {
     }));
   }
 
-  // Plages d'alcool
   private async getAlcoolRanges() {
     const ranges = [
       { min: 0, max: 11, label: "Moins de 11%" },
@@ -303,7 +268,6 @@ export class FiltersService {
     return rangesWithCount.filter((range) => range.count > 0);
   }
 
-  // Types de Champagne
   private async getChampagneTypes() {
     const types = await prisma.champagne_details.groupBy({
       by: ["type_champagne"],
@@ -318,7 +282,6 @@ export class FiltersService {
     }));
   }
 
-  // Styles de Champagne
   private async getChampagneStyles() {
     const styles = await prisma.champagne_details.groupBy({
       by: ["style_champagne"],
@@ -333,7 +296,6 @@ export class FiltersService {
     }));
   }
 
-  // Catégories de Cognac
   private async getCognacCategories() {
     const categories = await prisma.cognac_details.groupBy({
       by: ["cat_gorie__ge"],
@@ -348,7 +310,6 @@ export class FiltersService {
     }));
   }
 
-  // Régions de Cognac
   private async getCognacRegions() {
     const regions = await prisma.cognac_details.groupBy({
       by: ["r_gion_cognac"],
@@ -363,7 +324,6 @@ export class FiltersService {
     }));
   }
 
-  // Catégories d'accords mets
   private async getAccordsCategories() {
     const categories = await prisma.accords_mets.groupBy({
       by: ["cat_gorie"],
@@ -378,12 +338,10 @@ export class FiltersService {
     }));
   }
 
-  // Compteur de produits avec filtres
   private async getProductCount(where: any) {
     return await prisma.produits.count({ where });
   }
 
-  // Formateur de labels
   private formatLabel(label: string | null): string {
     if (!label) return "Non spécifié";
     return label
