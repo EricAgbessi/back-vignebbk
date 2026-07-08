@@ -4,8 +4,23 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = "admin@vignebbk.com";
-  const password = "adminpassword123";
+  const email = process.env.ADMIN_SEED_EMAIL ?? "admin@vignebbk.com";
+  const password = process.env.ADMIN_SEED_PASSWORD;
+
+  if (!password) {
+    console.error(
+      "ADMIN_SEED_PASSWORD is required to seed the admin account. " +
+        "Set it in the environment before running this seed."
+    );
+    process.exit(1);
+  }
+  if (process.env.NODE_ENV === "production" && !process.env.ALLOW_ADMIN_SEED) {
+    console.error(
+      "Refusing to run admin seed in production without ALLOW_ADMIN_SEED=1."
+    );
+    process.exit(1);
+  }
+
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const admin = await prisma.utilisateurs.upsert({
