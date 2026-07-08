@@ -204,19 +204,20 @@ export class FiltersService {
       _avg: { prix: true },
     });
 
-    const ranges = [
-      { min: 0, max: 20, label: "Moins de 20€" },
-      { min: 20, max: 50, label: "20€ - 50€" },
-      { min: 50, max: 100, label: "50€ - 100€" },
-      { min: 100, max: Infinity, label: "Plus de 100€" },
-    ];
+    const min = prixStats._min.prix != null ? Number(prixStats._min.prix) : 0;
+    const max = prixStats._max.prix != null ? Number(prixStats._max.prix) : 0;
+
+    // Build price buckets dynamically from the real catalogue range (in the
+    // store currency), instead of hardcoded euro tiers. Boundaries are rounded
+    // to a "nice" step so labels stay readable.
+    const ranges = this.buildPriceRanges(min, max);
 
     const rangesWithCount = await Promise.all(
       ranges.map(async (range) => {
         const count = await this.getProductCount({
           prix: {
             gte: range.min,
-            ...(range.max !== Infinity && { lte: range.max }),
+            ...(range.max !== null && { lt: range.max }),
           },
         });
         return { ...range, count };
@@ -231,6 +232,34 @@ export class FiltersService {
         avg: prixStats._avg.prix,
       },
     };
+  }
+
+  // Split [min, max] into ~4 buckets on rounded boundaries. Currency-agnostic:
+  // works for FCFA (tens of thousands) as well as any other scale.
+  private buildPriceRanges(min: number, max: number) {
+    if (!(max > min)) {
+      return [{ min: 0, max: null as number | null, label: "Tous les prix" }];
+    }
+    const niceStep = (raw: number): number => {
+      const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+      const base = raw / pow;
+      const mult = base <= 1 ? 1 : base <= 2 ? 2 : base <= 5 ? 5 : 10;
+      return mult * pow;
+    };
+    const step = niceStep((max - min) / 4);
+    const start = Math.floor(min / step) * step;
+    const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
+
+    const ranges: { min: number; max: number | null; label: string }[] = [];
+    for (let i = 0; i < 4; i++) {
+      const lo = start + i * step;
+      const hi = i === 3 ? null : lo + step;
+      if (hi !== null && hi <= min) continue;
+      if (i === 0) ranges.push({ min: 0, max: hi, label: `Moins de ${fmt(hi!)} FCFA` });
+      else if (hi === null) ranges.push({ min: lo, max: null, label: `Plus de ${fmt(lo)} FCFA` });
+      else ranges.push({ min: lo, max: hi, label: `${fmt(lo)} - ${fmt(hi)} FCFA` });
+    }
+    return ranges;
   }
 
   private async getMillesimes() {

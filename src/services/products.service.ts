@@ -124,12 +124,18 @@ export class ProductsService {
     if (millesimes?.length) where.millesime = { in: millesimes };
     if (cepages?.length) where.produit_cepages = { some: { cepage_id: { in: cepages } } };
 
-    if (champagneTypes?.length) where.champagne_details = { type_champagne: { in: champagneTypes } };
-    if (champagneStyles?.length) where.champagne_details = { style_champagne: { in: champagneStyles } };
-    if (champagneMaisons?.length) where.champagne_details = { maison: { in: champagneMaisons } };
+    // Merge into a single relation filter so combining several champagne (or
+    // cognac) criteria narrows the result instead of overwriting each other.
+    const champagneDetails: any = {};
+    if (champagneTypes?.length) champagneDetails.type_champagne = { in: champagneTypes };
+    if (champagneStyles?.length) champagneDetails.style_champagne = { in: champagneStyles };
+    if (champagneMaisons?.length) champagneDetails.maison = { in: champagneMaisons };
+    if (Object.keys(champagneDetails).length) where.champagne_details = champagneDetails;
 
-    if (cognacCategories?.length) where.cognac_details = { cat_gorie__ge: { in: cognacCategories } };
-    if (cognacRegions?.length) where.cognac_details = { r_gion_cognac: { in: cognacRegions } };
+    const cognacDetails: any = {};
+    if (cognacCategories?.length) cognacDetails.cat_gorie__ge = { in: cognacCategories };
+    if (cognacRegions?.length) cognacDetails.r_gion_cognac = { in: cognacRegions };
+    if (Object.keys(cognacDetails).length) where.cognac_details = cognacDetails;
 
     if (prixMin !== undefined || prixMax !== undefined) {
       where.prix = {};
