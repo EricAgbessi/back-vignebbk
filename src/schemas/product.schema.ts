@@ -12,9 +12,12 @@ export const productQuerySchema = z.object({
   prixMax: z.string().optional().transform(v => v ? parseFloat(v) : undefined),
   alcoolMin: z.string().optional().transform(v => v ? parseFloat(v) : undefined),
   alcoolMax: z.string().optional().transform(v => v ? parseFloat(v) : undefined),
-  bio: z.string().optional().transform(v => v === "true"),
-  vegetalien: z.string().optional().transform(v => v === "true"),
-  promotion: z.string().optional().transform(v => v === "true"),
+  // Absent param must stay undefined (no filter). `v === "true"` alone would
+  // turn an absent param into `false`, silently hiding every bio / vegetarian /
+  // promoted product from all listings.
+  bio: z.string().optional().transform(v => (v === undefined ? undefined : v === "true")),
+  vegetalien: z.string().optional().transform(v => (v === undefined ? undefined : v === "true")),
+  promotion: z.string().optional().transform(v => (v === undefined ? undefined : v === "true")),
   disponible: z.string().optional().default("true").transform(v => {
     if (v === "true") return true;
     if (v === "false") return false;
