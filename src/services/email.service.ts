@@ -1,6 +1,17 @@
 import nodemailer from "nodemailer";
 import { env } from "../config/env";
 
+// Escape values that originate from user input before interpolating them into
+// the HTML email body.
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 const transporter = nodemailer.createTransport({
   host: env.SMTP_HOST,
   port: parseInt(env.SMTP_PORT),
@@ -47,15 +58,15 @@ Connectez-vous au dashboard pour traiter la commande.
     `,
     html: `
       <h2>Nouvelle Commande #${order.id}</h2>
-      <p><strong>Client:</strong> ${order.telephone}</p>
-      <p><strong>Adresse:</strong> ${order.adresse}</p>
-      
+      <p><strong>Client:</strong> ${escapeHtml(order.telephone)}</p>
+      <p><strong>Adresse:</strong> ${escapeHtml(order.adresse)}</p>
+
       <h3>Produits:</h3>
       <ul>
         ${order.produits
           .map(
             (p: any) =>
-              `<li>${p.quantity}x <strong>${p.nom}</strong> - ${p.prix * p.quantity} FCFA</li>`
+              `<li>${escapeHtml(p.quantity)}x <strong>${escapeHtml(p.nom)}</strong> - ${p.prix * p.quantity} FCFA</li>`
           )
           .join("")}
       </ul>
