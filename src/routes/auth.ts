@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { randomInt } from "crypto";
 import { sign } from "hono/jwt";
 import { setCookie, deleteCookie } from "hono/cookie";
 import bcrypt from "bcryptjs";
@@ -73,7 +74,7 @@ authRoutes.post("/login", loginLimiter, zValidator("json", loginSchema), async (
     return c.json({ error: "Accès refusé" }, 403);
   }
 
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const code = randomInt(100000, 1000000).toString();
   const codeHash = await bcrypt.hash(code, 10);
   const expiresAt = new Date(Date.now() + TWO_FA_TTL_MS);
 

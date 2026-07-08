@@ -2,6 +2,7 @@ import { Context, Next } from "hono";
 import { verify } from "hono/jwt";
 import { getCookie } from "hono/cookie";
 import { env } from "../config/env";
+import { prisma } from "../utils";
 
 export const AUTH_COOKIE_NAME = "vignebbk_session";
 
@@ -42,6 +43,18 @@ export const adminMiddleware = async (c: Context, next: Next) => {
   if (payload.role !== "administrateur") {
     return c.json({ error: "Forbidden" }, 403);
   }
+
+  // Re-check the account against the database so a revoked/downgraded/disabled
+  // user cannot keep acting as admin until the 24h token expires.
+  const userId = typeof payload.id === "number" ? payload.id : Number(payload.id);
+  const user = await prisma.utilisateurs.findUnique({
+    where: { id: userId },
+    select: { r_le: true, actif: true },
+  });
+  if (!user || user.r_le !== "administrateur" || user.actif === false) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
   c.set("jwtPayload", payload);
   await next();
 };

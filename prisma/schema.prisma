@@ -317,7 +317,7 @@ model utilisateurs {
   recherches_sauvegard_es recherches_sauvegard_es[]
   commandes               commandes[]
   push_subscription       String?                   @db.Text
-  two_factor_code         String?                   @db.VarChar(6)
+  two_factor_code         String?                   @db.VarChar(255)
   two_factor_expires_at   DateTime?                 @db.Timestamp(0)
 
   @@index([actif], map: "idx_actif")

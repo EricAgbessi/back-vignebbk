@@ -1,4 +1,5 @@
 import { Context, Next } from "hono";
+import { getConnInfo } from "@hono/node-server/conninfo";
 
 interface Bucket {
   count: number;
@@ -22,9 +23,20 @@ setInterval(() => {
 }, 60_000).unref?.();
 
 function clientKey(c: Context, prefix: string): string {
-  const fwd = c.req.header("x-forwarded-for");
-  const ip = fwd ? fwd.split(",")[0].trim() : c.req.header("x-real-ip") || "unknown";
-  return `${prefix}:${ip}`;
+  // Cloudflare sets CF-Connecting-IP with the real client IP and overwrites any
+  // client-supplied value, so it is trustworthy when traffic goes through CF.
+  // Otherwise fall back to the real socket address. We never trust raw
+  // X-Forwarded-For: its leftmost value is client-controllable and would let an
+  // attacker rotate the rate-limit key on every request.
+  let ip = c.req.header("cf-connecting-ip")?.trim();
+  if (!ip) {
+    try {
+      ip = getConnInfo(c).remote.address;
+    } catch {
+      ip = undefined;
+    }
+  }
+  return `${prefix}:${ip || "unknown"}`;
 }
 
 export function rateLimit(options: Options) {

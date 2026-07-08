@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { adminMiddleware } from "../middleware/auth";
+import { env } from "../config/env";
 
 const uploadRoutes = new Hono();
 
@@ -14,6 +15,8 @@ if (!fs.existsSync(UPLOAD_DIR)) {
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 // (mime -> extension)
+// SVG is intentionally excluded: it can embed <script> and, served from the API
+// origin, would be a stored-XSS vector.
 const ALLOWED_MIME: Record<string, string> = {
   "image/jpeg": ".jpg",
   "image/png": ".png",
@@ -21,7 +24,6 @@ const ALLOWED_MIME: Record<string, string> = {
   "image/gif": ".gif",
   "image/heic": ".heic",
   "image/heif": ".heif",
-  "image/svg+xml": ".svg",
 };
 
 function safeMimeExtension(mime: string, originalName: string): string | null {
@@ -43,7 +45,6 @@ function getMimeType(filename: string): string {
     ".png": "image/png",
     ".gif": "image/gif",
     ".webp": "image/webp",
-    ".svg": "image/svg+xml",
     ".heic": "image/heic",
     ".heif": "image/heif",
   };
@@ -71,6 +72,8 @@ uploadRoutes.get("/files/:filename", async (c) => {
 
   const fileContent = fs.readFileSync(filepath);
   c.header("Content-Type", getMimeType(filename));
+  // Prevent MIME sniffing from turning a served file into an executable type.
+  c.header("X-Content-Type-Options", "nosniff");
   c.header("Cache-Control", "public, max-age=31536000, immutable");
   return c.body(fileContent);
 });
@@ -99,9 +102,12 @@ uploadRoutes.post("/", adminMiddleware, async (c) => {
   const buffer = await file.arrayBuffer();
   fs.writeFileSync(filepath, Buffer.from(buffer));
 
-  const protocol = c.req.header("x-forwarded-proto") || "http";
-  const host = c.req.header("host");
-  const url = `${protocol}://${host}/api/upload/files/${filename}`;
+  // Prefer the configured public origin; fall back to request headers only when
+  // it is not set (the Host header is client-controllable).
+  const base =
+    env.PUBLIC_BASE_URL ??
+    `${c.req.header("x-forwarded-proto") || "http"}://${c.req.header("host")}`;
+  const url = `${base.replace(/\/$/, "")}/api/upload/files/${filename}`;
 
   return c.json({
     success: true,
