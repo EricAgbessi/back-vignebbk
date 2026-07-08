@@ -104,7 +104,9 @@ productsRoutes.post(
         {
           success: false,
           message: "Erreur lors de la création du produit",
-          error: error?.message || "Unknown error",
+          ...(process.env.NODE_ENV !== "production"
+            ? { error: error?.message || "Unknown error" }
+            : {}),
         },
         400
       );
@@ -133,7 +135,9 @@ productsRoutes.put(
         {
           success: false,
           message: "Erreur lors de la mise à jour du produit",
-          error: error?.message || "Unknown error",
+          ...(process.env.NODE_ENV !== "production"
+            ? { error: error?.message || "Unknown error" }
+            : {}),
         },
         400
       );

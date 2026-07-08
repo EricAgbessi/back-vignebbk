@@ -1,8 +1,19 @@
 import { Hono } from "hono";
+import { z } from "zod";
+import { zValidator } from "@hono/zod-validator";
 import { adminMiddleware } from "../middleware/auth";
 import { prisma } from "../utils";
 import webpush from "web-push";
 import { env } from "../config/env";
+
+const subscriptionSchema = z.object({
+  endpoint: z.string().url(),
+  expirationTime: z.number().nullable().optional(),
+  keys: z.object({
+    p256dh: z.string(),
+    auth: z.string(),
+  }),
+});
 
 const notificationRoutes = new Hono();
 
@@ -20,11 +31,11 @@ if (pushEnabled) {
 
 notificationRoutes.use("*", adminMiddleware);
 
-notificationRoutes.post("/subscribe", async (c) => {
+notificationRoutes.post("/subscribe", zValidator("json", subscriptionSchema), async (c) => {
   if (!pushEnabled) return c.json({ error: "Notifications désactivées" }, 503);
 
   const payload = c.get("jwtPayload") as { id: number };
-  const subscription = await c.req.json();
+  const subscription = c.req.valid("json");
 
   await prisma.utilisateurs.update({
     where: { id: payload.id },

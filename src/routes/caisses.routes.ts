@@ -1,6 +1,8 @@
 import { Hono } from "hono";
+import { zValidator } from "@hono/zod-validator";
 import { CaissesService } from "../services/caisses.service";
 import { adminMiddleware } from "../middleware/auth";
+import { createCaisseSchema, updateCaisseSchema } from "../schemas/caisse.schema";
 
 const caissesRoutes = new Hono();
 const caissesService = new CaissesService();
@@ -8,15 +10,15 @@ const caissesService = new CaissesService();
 // Admin routes only for now
 caissesRoutes.use("*", adminMiddleware);
 
-caissesRoutes.post("/", async (c) => {
-  const body = await c.req.json();
+caissesRoutes.post("/", zValidator("json", createCaisseSchema), async (c) => {
+  const body = c.req.valid("json");
   const caisse = await caissesService.createCaisse(body);
   return c.json(caisse, 201);
 });
 
-caissesRoutes.put("/:id", async (c) => {
+caissesRoutes.put("/:id", zValidator("json", updateCaisseSchema), async (c) => {
   const id = parseInt(c.req.param("id"));
-  const body = await c.req.json();
+  const body = c.req.valid("json");
   const caisse = await caissesService.updateCaisse(id, body);
   return c.json(caisse);
 });

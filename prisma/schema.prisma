@@ -18,7 +18,7 @@ model accords_mets {
   exemples        String?                    @db.Text
   image_url       String?                    @db.Text
   created_at      DateTime?                  @default(now()) @db.Timestamp(0)
-  updated_at      DateTime?                  @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?                  @default(now()) @updatedAt @db.Timestamp(0)
   produit_accords produit_accords[]
 
   @@index([cat_gorie], map: "idx_categorie")
@@ -35,7 +35,7 @@ model avis_clients {
   recommand_     Boolean?             @map("recommandé")
   statut         avis_clients_statut? @default(en_attente)
   cr___le        DateTime?            @default(now()) @map("créé_le") @db.Timestamp(0)
-  modifi__le     DateTime?            @default(now()) @map("modifié_le") @db.Timestamp(0)
+  modifi__le     DateTime?            @default(now()) @updatedAt @map("modifié_le") @db.Timestamp(0)
   produits       produits             @relation(fields: [produit_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "avis_clients_ibfk_1")
   utilisateurs   utilisateurs         @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "avis_clients_ibfk_2")
 
@@ -57,7 +57,7 @@ model cepages {
   maturit_         cepages_maturit_?     @map("maturité")
   vigoure          cepages_vigoure?
   created_at       DateTime?             @default(now()) @db.Timestamp(0)
-  updated_at       DateTime?             @default(now()) @db.Timestamp(0)
+  updated_at       DateTime?             @default(now()) @updatedAt @db.Timestamp(0)
   produit_cepages  produit_cepages[]
 }
 
@@ -120,7 +120,7 @@ model domaines {
   adresse         String?    @db.Text
   site_web        String?    @db.VarChar(255)
   created_at      DateTime?  @default(now()) @db.Timestamp(0)
-  updated_at      DateTime?  @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?  @default(now()) @updatedAt @db.Timestamp(0)
   regions         regions    @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "domaines_ibfk_1")
   produits        produits[]
 
@@ -236,7 +236,7 @@ model produits {
   bio                  Boolean?            @default(false)
   v_g_talien           Boolean?            @default(false) @map("végétalien")
   created_at           DateTime?           @default(now()) @db.Timestamp(0)
-  updated_at           DateTime?           @default(now()) @db.Timestamp(0)
+  updated_at           DateTime?           @default(now()) @updatedAt @db.Timestamp(0)
   avis_clients         avis_clients[]
   champagne_details    champagne_details?
   cognac_details       cognac_details?
@@ -272,7 +272,7 @@ model recherches_sauvegard_es {
   nom_recherche  String       @db.VarChar(255)
   param_tres     Json         @map("paramètres")
   cr___le        DateTime?    @default(now()) @map("créé_le") @db.Timestamp(0)
-  modifi__le     DateTime?    @default(now()) @map("modifié_le") @db.Timestamp(0)
+  modifi__le     DateTime?    @default(now()) @updatedAt @map("modifié_le") @db.Timestamp(0)
   utilisateurs   utilisateurs @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "recherches_sauvegardées_ibfk_1")
 
   @@index([utilisateur_id], map: "idx_utilisateur")
@@ -288,7 +288,7 @@ model regions {
   climat          regions_climat?
   superficie      Decimal?          @db.Decimal(10, 2)
   created_at      DateTime?         @default(now()) @db.Timestamp(0)
-  updated_at      DateTime?         @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?         @default(now()) @updatedAt @db.Timestamp(0)
   classifications classifications[]
   domaines        domaines[]
   produits        produits[]
@@ -311,7 +311,7 @@ model utilisateurs {
   derni_re_connexion      DateTime?                 @map("dernière_connexion") @db.DateTime(0)
   pr_f_rences             Json?                     @map("préférences")
   cr___le                 DateTime?                 @default(now()) @map("créé_le") @db.Timestamp(0)
-  modifi__le              DateTime?                 @default(now()) @map("modifié_le") @db.Timestamp(0)
+  modifi__le              DateTime?                 @default(now()) @updatedAt @map("modifié_le") @db.Timestamp(0)
   avis_clients            avis_clients[]
   favoris                 favoris[]
   recherches_sauvegard_es recherches_sauvegard_es[]
@@ -532,7 +532,7 @@ model campagnes {
   date_debut      DateTime?  @db.DateTime(0)
   date_fin        DateTime?  @db.DateTime(0)
   created_at      DateTime?  @default(now()) @db.Timestamp(0)
-  updated_at      DateTime?  @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?  @default(now()) @updatedAt @db.Timestamp(0)
   
   produits        produits[]
   caisses         caisses[]
@@ -548,7 +548,7 @@ model caisses {
   quantite_stock  Int?       @default(0)
   est_active      Boolean    @default(true)
   created_at      DateTime?  @default(now()) @db.Timestamp(0)
-  updated_at      DateTime?  @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?  @default(now()) @updatedAt @db.Timestamp(0)
   
   campagne_id     Int?
   campagnes       campagnes? @relation(fields: [campagne_id], references: [id], onDelete: SetNull, onUpdate: NoAction)

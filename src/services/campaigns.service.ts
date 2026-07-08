@@ -80,8 +80,6 @@ export class CampaignsService {
     const campaign = await prisma.campagnes.create({
       data: {
         ...campaignData,
-        created_at: new Date(),
-        updated_at: new Date(),
       },
     });
 
@@ -106,7 +104,6 @@ export class CampaignsService {
       where: { id },
       data: {
         ...campaignData,
-        updated_at: new Date(),
       },
     });
 

@@ -1,6 +1,11 @@
 import { Hono } from "hono";
+import { zValidator } from "@hono/zod-validator";
 import { CampaignsService } from "../services/campaigns.service";
 import { adminMiddleware as adminAuth } from "../middleware/auth";
+import {
+  createCampaignSchema,
+  updateCampaignSchema,
+} from "../schemas/campaign.schema";
 
 const campaignsRoutes = new Hono();
 const campaignsService = new CampaignsService();
@@ -24,15 +29,15 @@ campaignsRoutes.get("/", adminAuth, async (c) => {
   return c.json(campaigns);
 });
 
-campaignsRoutes.post("/", adminAuth, async (c) => {
-  const body = await c.req.json();
+campaignsRoutes.post("/", adminAuth, zValidator("json", createCampaignSchema), async (c) => {
+  const body = c.req.valid("json");
   const campaign = await campaignsService.createCampaign(body);
   return c.json(campaign, 201);
 });
 
-campaignsRoutes.put("/:id", adminAuth, async (c) => {
+campaignsRoutes.put("/:id", adminAuth, zValidator("json", updateCampaignSchema), async (c) => {
   const id = parseInt(c.req.param("id"));
-  const body = await c.req.json();
+  const body = c.req.valid("json");
   const campaign = await campaignsService.updateCampaign(id, body);
   return c.json(campaign);
 });

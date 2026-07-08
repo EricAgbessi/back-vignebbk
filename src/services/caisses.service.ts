@@ -8,8 +8,6 @@ export class CaissesService {
       const caisse = await tx.caisses.create({
         data: {
           ...caisseData,
-          created_at: new Date(),
-          updated_at: new Date(),
         },
       });
 
@@ -35,7 +33,6 @@ export class CaissesService {
         where: { id },
         data: {
           ...caisseData,
-          updated_at: new Date(),
         },
       });
 
