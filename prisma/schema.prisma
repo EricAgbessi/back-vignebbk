@@ -16,6 +16,7 @@ model accords_mets {
   description     String?                    @db.Text
   force_accord    accords_mets_force_accord? @default(moyen)
   exemples        String?                    @db.Text
+  image_url       String?                    @db.Text
   created_at      DateTime?                  @default(now()) @db.Timestamp(0)
   updated_at      DateTime?                  @default(now()) @db.Timestamp(0)
   produit_accords produit_accords[]
@@ -210,7 +211,7 @@ model produits {
   nom                  String              @db.VarChar(255)
   type                 produits_type
   cat_gorie            String?             @map("catégorie") @db.VarChar(100)
-  region_id            Int
+  region_id            Int?
   domaine_id           Int?
   classification_id    Int?
   style                String?             @db.VarChar(100)
@@ -244,9 +245,12 @@ model produits {
   produit_accords      produit_accords[]
   produit_cepages      produit_cepages[]
   produit_images       produit_images[]
-  regions              regions             @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produits_ibfk_1")
+  regions              regions?            @relation(fields: [region_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produits_ibfk_1")
   domaines             domaines?           @relation(fields: [domaine_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produits_ibfk_2")
   classifications      classifications?    @relation(fields: [classification_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "produits_ibfk_3")
+  campagne_id          Int?
+  campagnes            campagnes?          @relation(fields: [campagne_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "produits_ibfk_4")
+  contenu_caisse       contenu_caisse[]
 
   @@index([domaine_id], map: "domaine_id")
   @@index([bio], map: "idx_bio")
@@ -311,10 +315,28 @@ model utilisateurs {
   avis_clients            avis_clients[]
   favoris                 favoris[]
   recherches_sauvegard_es recherches_sauvegard_es[]
+  commandes               commandes[]
+  push_subscription       String?                   @db.Text
+  two_factor_code         String?                   @db.VarChar(6)
+  two_factor_expires_at   DateTime?                 @db.Timestamp(0)
 
   @@index([actif], map: "idx_actif")
   @@index([email], map: "idx_email")
   @@index([r_le], map: "idx_rôle")
+}
+
+model commandes {
+  id              Int          @id @default(autoincrement())
+  utilisateur_id  Int?
+  total           Decimal      @db.Decimal(10, 2)
+  statut          String       @default("en_attente")
+  produits        Json
+  adresse         String?      @db.Text
+  telephone       String?      @db.VarChar(20)
+  created_at      DateTime     @default(now()) @db.Timestamp(0)
+  utilisateurs    utilisateurs? @relation(fields: [utilisateur_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([utilisateur_id], map: "idx_utilisateur")
 }
 
 enum accords_mets_cat_gorie {
@@ -360,7 +382,7 @@ enum cognac_details_cat_gorie__ge {
   VS
   VSOP
   XO
-  Hors_d__ge @map("Hors d'Âge")
+  Hors_d__ge @map("Hors d’Âge")
   Napol_on   @map("Napoléon")
 
   @@map("cognac_details_catégorie_âge")
@@ -492,4 +514,56 @@ enum champagne_details_caract_ristiques_bulle {
   cr_meuse    @map("crémeuse")
 
   @@map("champagne_details_caractéristiques_bulle")
+}
+
+
+model campagnes {
+  id              Int        @id @default(autoincrement())
+  nom             String     @db.VarChar(100)
+  titre_affiche   String?    @db.VarChar(255)
+  sous_titre      String?    @db.VarChar(255)
+  description     String?    @db.Text
+  image_url       String?    @db.Text
+  couleur_fond    String?    @default("#810b15") @db.VarChar(20)
+  texte_bouton    String?    @default("Voir l'offre") @db.VarChar(50)
+  lien_bouton     String?    @db.VarChar(255)
+  position        Int?       @default(0)
+  est_active      Boolean    @default(false)
+  date_debut      DateTime?  @db.DateTime(0)
+  date_fin        DateTime?  @db.DateTime(0)
+  created_at      DateTime?  @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?  @default(now()) @db.Timestamp(0)
+  
+  produits        produits[]
+  caisses         caisses[]
+}
+
+model caisses {
+  id              Int        @id @default(autoincrement())
+  nom             String     @db.VarChar(255)
+  description     String?    @db.Text
+  prix            Decimal    @db.Decimal(10, 2)
+  promotion       Decimal?   @db.Decimal(5, 2)
+  image_url       String?    @db.Text
+  quantite_stock  Int?       @default(0)
+  est_active      Boolean    @default(true)
+  created_at      DateTime?  @default(now()) @db.Timestamp(0)
+  updated_at      DateTime?  @default(now()) @db.Timestamp(0)
+  
+  campagne_id     Int?
+  campagnes       campagnes? @relation(fields: [campagne_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  
+  contenu_caisse  contenu_caisse[]
+}
+
+model contenu_caisse {
+  id              Int      @id @default(autoincrement())
+  caisse_id       Int
+  produit_id      Int
+  quantite        Int      @default(1)
+  
+  caisses         caisses  @relation(fields: [caisse_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  produits        produits @relation(fields: [produit_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([caisse_id, produit_id])
 }

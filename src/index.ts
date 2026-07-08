@@ -3,39 +3,62 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
-import { env } from "./config/env";
+import { env, corsOrigins } from "./config/env";
 import { prisma } from "./utils";
 import { errorHandler } from "./middleware/error-handler";
 import megaMenuRoutes from "./routes/megamenu";
 import filtersRoutes from "./routes/filters";
 import productsRoutes from "./routes/products.routes";
+import authRoutes from "./routes/auth";
+import notificationRoutes from "./routes/notifications";
+import orderRoutes from "./routes/orders";
+import referentialsRoutes from "./routes/referentials.routes";
+import uploadRoutes from "./routes/upload.routes";
+import campaignsRoutes from "./routes/campaigns.routes";
+import caissesRoutes from "./routes/caisses.routes";
 
 const app = new Hono();
 
-// Middlewares de sécurité et utilitaires
 app.use("*", logger());
-app.use("*", secureHeaders());
 app.use(
   "*",
-  cors({
-    origin: env.CORS_ORIGIN,
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
+  secureHeaders({
+    crossOriginResourcePolicy: "cross-origin",
+    crossOriginOpenerPolicy: "unsafe-none",
+    crossOriginEmbedderPolicy: "unsafe-none",
   })
 );
 
-// Routes
+app.use(
+  "*",
+  cors({
+    origin: (origin) => {
+      if (!origin) return ""; // same-origin / server-to-server: no CORS header needed
+      return corsOrigins.includes(origin) ? origin : "";
+    },
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    credentials: true,
+    maxAge: 86400,
+  })
+);
+
+app.get("/health", (c) => c.json({ ok: true }));
+app.get("/", (c) => c.text("Vignebbk API is running"));
+
 app.route("/api/megamenu", megaMenuRoutes);
 app.route("/api/filters", filtersRoutes);
 app.route("/api/products", productsRoutes);
+app.route("/api/auth", authRoutes);
+app.route("/api/notifications", notificationRoutes);
+app.route("/api/orders", orderRoutes);
+app.route("/api/referentials", referentialsRoutes);
+app.route("/api/upload", uploadRoutes);
+app.route("/api/campaigns", campaignsRoutes);
+app.route("/api/caisses", caissesRoutes);
 
-app.get("/", (c) => c.text("Vignebbk API is running"));
-
-// Gestion centralisée des erreurs
 app.onError(errorHandler);
 
-// Connexion Prisma et démarrage du serveur
 async function startServer() {
   try {
     await prisma.$connect();
@@ -43,6 +66,7 @@ async function startServer() {
 
     const port = parseInt(env.PORT);
     console.log(`🚀 Server running at http://localhost:${port}`);
+    console.log(`🔒 CORS allowlist: ${corsOrigins.join(", ") || "(none)"}`);
 
     serve({
       fetch: app.fetch,
@@ -50,18 +74,19 @@ async function startServer() {
     });
   } catch (e) {
     console.error("❌ ÉCHEC du démarrage du serveur :", e);
-    process.exit(1);
+    if (typeof process !== "undefined") process.exit(1);
   }
 }
 
-// Graceful shutdown
 const shutdown = async () => {
   console.log("Stopping server...");
   await prisma.$disconnect();
-  process.exit(0);
+  if (typeof process !== "undefined") process.exit(0);
 };
 
-process.on("SIGTERM", shutdown);
-process.on("SIGINT", shutdown);
+if (typeof process !== "undefined") {
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
+}
 
 startServer();

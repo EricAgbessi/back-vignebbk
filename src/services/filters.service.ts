@@ -15,6 +15,7 @@ export class FiltersService {
       alcoolRanges,
       champagneTypes,
       champagneStyles,
+      champagneMaisons,
       cognacCategories,
       cognacRegions,
       accordsCategories,
@@ -31,6 +32,7 @@ export class FiltersService {
       this.getAlcoolRanges(),
       this.getChampagneTypes(),
       this.getChampagneStyles(),
+      this.getChampagneMaisons(),
       this.getCognacCategories(),
       this.getCognacRegions(),
       this.getAccordsCategories(),
@@ -49,6 +51,7 @@ export class FiltersService {
       alcoolRanges,
       champagneTypes,
       champagneStyles,
+      champagneMaisons,
       cognacCategories,
       cognacRegions,
       accordsCategories,
@@ -292,6 +295,20 @@ export class FiltersService {
     return styles.map((item) => ({
       value: item.style_champagne,
       label: this.formatLabel(item.style_champagne),
+      count: item._count.produit_id,
+    }));
+  }
+
+  private async getChampagneMaisons() {
+    const maisons = await prisma.champagne_details.groupBy({
+      by: ["maison"],
+      _count: { produit_id: true },
+      orderBy: { maison: "asc" },
+    });
+
+    return maisons.map((item) => ({
+      value: item.maison,
+      label: item.maison || "Non spécifié",
       count: item._count.produit_id,
     }));
   }

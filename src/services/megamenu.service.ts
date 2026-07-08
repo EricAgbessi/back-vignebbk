@@ -435,10 +435,10 @@ export class MegamenuService {
     ]);
 
     return {
-      VINS: wines,
-      "GRANDS VINS": grandWines,
+      "PETITE CRUE": wines,
+      "GRAND CRU": grandWines,
       CHAMPAGNES: champagnes,
-      SPIRITUEUX: spirits,
+      COGNAC: spirits,
     };
   }
 }
