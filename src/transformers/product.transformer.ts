@@ -148,7 +148,7 @@ export class ProductTransformer {
       images: formattedImages,
       avis: formattedAvis,
       historique_stocks: product.historique_stocks,
-      modele3D: 'wine.glb', // Hardcoded for now to enable 3D view
+      modele3D: '/3D/wine.glb', // Hardcoded for now to enable 3D view
       campagne_id: product.campagne_id,
     };
 
