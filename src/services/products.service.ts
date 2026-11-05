@@ -164,15 +164,19 @@ export class ProductsService {
       ];
     }
 
-    const orderBy: any = {};
+    const primary: any = {};
     switch (sortBy) {
-      case "prix_asc": orderBy.prix = "asc"; break;
-      case "prix_desc": orderBy.prix = "desc"; break;
-      case "note_desc": orderBy.cote = "desc"; break;
-      case "promotion_desc": orderBy.promotion = "desc"; break;
-      case "nouveaute": orderBy.created_at = "desc"; break;
-      case "nom_asc": default: orderBy.nom = "asc"; break;
+      case "prix_asc": primary.prix = "asc"; break;
+      case "prix_desc": primary.prix = "desc"; break;
+      case "note_desc": primary.cote = "desc"; break;
+      case "promotion_desc": primary.promotion = "desc"; break;
+      case "nouveaute": primary.created_at = "desc"; break;
+      case "nom_asc": default: primary.nom = "asc"; break;
     }
+    // Unique tiebreaker: without it MySQL returns ties (e.g. 93 products with
+    // the same rating) in a different order on each page, so skip/take shows
+    // some products twice and never shows others.
+    const orderBy = [primary, { id: "asc" }];
 
     const [products, totalCount] = await Promise.all([
       prisma.produits.findMany({
