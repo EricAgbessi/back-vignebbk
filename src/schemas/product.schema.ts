@@ -1,17 +1,43 @@
 import { z } from "zod";
+import {
+  produits_type,
+  champagne_details_type_champagne,
+  champagne_details_style_champagne,
+  cognac_details_cat_gorie__ge,
+  cognac_details_r_gion_cognac,
+} from "@prisma/client";
+
+// Query-string parsers. Anything they reject becomes a 400 from zValidator,
+// instead of a NaN / unknown enum value that crashes Prisma into a 500.
+const idList = z
+  .string()
+  .regex(/^\d+(,\d+)*$/, "Liste d'identifiants numériques attendue")
+  .optional()
+  .transform(v => v?.split(",").map(Number));
+const enumList = <T extends Record<string, string>>(values: T) =>
+  z
+    .string()
+    .optional()
+    .transform(v => v?.split(","))
+    .pipe(z.array(z.enum(values)).optional());
+const decimal = z
+  .string()
+  .regex(/^\d+(\.\d+)?$/, "Nombre positif attendu")
+  .optional()
+  .transform(v => (v === undefined ? undefined : parseFloat(v)));
 
 export const productQuerySchema = z.object({
-  types: z.string().optional().transform(v => v?.split(",")),
-  regions: z.string().optional().transform(v => v?.split(",").map(Number)),
-  domaines: z.string().optional().transform(v => v?.split(",").map(Number)),
-  classifications: z.string().optional().transform(v => v?.split(",").map(Number)),
-  cepages: z.string().optional().transform(v => v?.split(",").map(Number)),
+  types: enumList(produits_type),
+  regions: idList,
+  domaines: idList,
+  classifications: idList,
+  cepages: idList,
   styles: z.string().optional().transform(v => v?.split(",")),
-  millesimes: z.string().optional().transform(v => v?.split(",").map(Number)),
-  prixMin: z.string().optional().transform(v => v ? parseFloat(v) : undefined),
-  prixMax: z.string().optional().transform(v => v ? parseFloat(v) : undefined),
-  alcoolMin: z.string().optional().transform(v => v ? parseFloat(v) : undefined),
-  alcoolMax: z.string().optional().transform(v => v ? parseFloat(v) : undefined),
+  millesimes: idList,
+  prixMin: decimal,
+  prixMax: decimal,
+  alcoolMin: decimal,
+  alcoolMax: decimal,
   // Absent param must stay undefined (no filter). `v === "true"` alone would
   // turn an absent param into `false`, silently hiding every bio / vegetarian /
   // promoted product from all listings.
@@ -25,13 +51,15 @@ export const productQuerySchema = z.object({
   }),
   search: z.string().optional(),
   sortBy: z.enum(["prix_asc", "prix_desc", "note_desc", "nom_asc", "promotion_desc", "nouveaute"]).optional().default("nom_asc"),
-  page: z.string().optional().default("1").transform(v => parseInt(v)),
-  champagneTypes: z.string().optional().transform(v => v?.split(",")),
-  champagneStyles: z.string().optional().transform(v => v?.split(",")),
+  page: z.coerce.number().int().min(1).default(1),
+  champagneTypes: enumList(champagne_details_type_champagne),
+  champagneStyles: enumList(champagne_details_style_champagne),
   champagneMaisons: z.string().optional().transform(v => v?.split(",")),
-  cognacCategories: z.string().optional().transform(v => v?.split(",")),
-  cognacRegions: z.string().optional().transform(v => v?.split(",")),
-  limit: z.string().optional().default("12").transform(v => parseInt(v)),
+  cognacCategories: enumList(cognac_details_cat_gorie__ge),
+  cognacRegions: enumList(cognac_details_r_gion_cognac),
+  // Capped: limit=100000 used to dump the whole catalogue in one response.
+  // 100, not 50: the front's promotions page asks for 60.
+  limit: z.coerce.number().int().min(1).max(100).default(12),
 });
 
 export type ProductQuery = z.infer<typeof productQuerySchema>;
