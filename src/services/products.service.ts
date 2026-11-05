@@ -1,6 +1,8 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../utils";
 import { ProductTransformer } from "../transformers/product.transformer";
 import { ProductQuery } from "../schemas/product.schema";
+import { discountedPrice } from "./pricing";
 
 export class ProductsService {
   async getFeaturedProducts(limit: number = 12) {
@@ -137,12 +139,6 @@ export class ProductsService {
     if (cognacRegions?.length) cognacDetails.r_gion_cognac = { in: cognacRegions };
     if (Object.keys(cognacDetails).length) where.cognac_details = cognacDetails;
 
-    if (prixMin !== undefined || prixMax !== undefined) {
-      where.prix = {};
-      if (prixMin !== undefined) where.prix.gte = prixMin;
-      if (prixMax !== undefined) where.prix.lte = prixMax;
-    }
-
     if (alcoolMin !== undefined || alcoolMax !== undefined) {
       where.teneur_alcool = {};
       if (alcoolMin !== undefined) where.teneur_alcool.gte = alcoolMin;
@@ -178,31 +174,71 @@ export class ProductsService {
     // some products twice and never shows others.
     const orderBy = [primary, { id: "asc" }];
 
-    const [products, totalCount] = await Promise.all([
-      prisma.produits.findMany({
+    // Price filter and price sort work on the price the card shows (after the
+    // promotion), which is not a column: compute it here on the candidates,
+    // then let Prisma fetch only the ids that survive.
+    const filtersByPrice = prixMin !== undefined || prixMax !== undefined;
+    const sortsByPrice = sortBy === "prix_asc" || sortBy === "prix_desc";
+    let priceOrderedIds: number[] | undefined;
+    if (filtersByPrice || sortsByPrice) {
+      const candidates = await prisma.produits.findMany({
         where,
-        include: {
-          regions: { select: { nom: true, pays: true } },
-          domaines: { select: { nom: true } },
-          classifications: { select: { nom: true, niveau: true } },
-          produit_cepages: {
-            include: { cepages: { select: { nom: true, type: true } } },
-          },
-          produit_images: {
-            where: { est_principale: true },
-            take: 1,
-          },
-          avis_clients: {
-            where: { statut: "approuv_" },
-            select: { note: true },
-          },
-        },
+        select: { id: true, prix: true, promotion: true },
         orderBy,
-        skip,
-        take: limit,
-      }),
-      prisma.produits.count({ where }),
-    ]);
+      });
+      let priced = candidates.map((c) => ({ id: c.id, price: discountedPrice(c.prix, c.promotion) }));
+      if (filtersByPrice) {
+        priced = priced.filter(
+          ({ price }) =>
+            price !== null &&
+            (prixMin === undefined || price >= prixMin) &&
+            (prixMax === undefined || price <= prixMax)
+        );
+      }
+      if (sortsByPrice) {
+        const dir = sortBy === "prix_asc" ? 1 : -1;
+        priced.sort((a, b) => {
+          if (a.price === b.price) return a.id - b.id;
+          if (a.price === null) return 1;
+          if (b.price === null) return -1;
+          return dir * (a.price - b.price);
+        });
+        priceOrderedIds = priced.map((p) => p.id);
+      }
+      where.id = { in: priced.map((p) => p.id) };
+    }
+
+    const include = {
+      regions: { select: { nom: true, pays: true } },
+      domaines: { select: { nom: true } },
+      classifications: { select: { nom: true, niveau: true } },
+      produit_cepages: {
+        include: { cepages: { select: { nom: true, type: true } } },
+      },
+      produit_images: {
+        where: { est_principale: true },
+        take: 1,
+      },
+      avis_clients: {
+        where: { statut: "approuv_" },
+        select: { note: true },
+      },
+    } satisfies Prisma.produitsInclude;
+
+    let products;
+    let totalCount: number;
+    if (priceOrderedIds) {
+      const pageIds = priceOrderedIds.slice(skip, skip + limit);
+      const rows = await prisma.produits.findMany({ where: { id: { in: pageIds } }, include });
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      products = pageIds.map((id) => byId.get(id)).filter((p) => p !== undefined);
+      totalCount = priceOrderedIds.length;
+    } else {
+      [products, totalCount] = await Promise.all([
+        prisma.produits.findMany({ where, include, orderBy, skip, take: limit }),
+        prisma.produits.count({ where }),
+      ]);
+    }
 
     return {
       products: ProductTransformer.formatProducts(products),

@@ -1,4 +1,5 @@
 import { prisma } from "../utils";
+import { discountedPrice } from "./pricing";
 
 export class FiltersService {
   async getAllFilters() {
@@ -198,38 +199,33 @@ export class FiltersService {
   }
 
   private async getPrixRanges() {
-    const prixStats = await prisma.produits.aggregate({
-      _min: { prix: true },
-      _max: { prix: true },
-      _avg: { prix: true },
-    });
+    // Buckets are built and counted on the price the card shows (after the
+    // promotion), the same one the listing filters on — see pricing.ts.
+    const rows = await prisma.produits.findMany({ select: { prix: true, promotion: true } });
+    const prices = rows
+      .map((r) => discountedPrice(r.prix, r.promotion))
+      .filter((p): p is number => p !== null);
 
-    const min = prixStats._min.prix != null ? Number(prixStats._min.prix) : 0;
-    const max = prixStats._max.prix != null ? Number(prixStats._max.prix) : 0;
+    const min = prices.length ? Math.min(...prices) : 0;
+    const max = prices.length ? Math.max(...prices) : 0;
+    const avg = prices.length ? prices.reduce((s, p) => s + p, 0) / prices.length : null;
 
     // Build price buckets dynamically from the real catalogue range (in the
     // store currency), instead of hardcoded euro tiers. Boundaries are rounded
     // to a "nice" step so labels stay readable.
     const ranges = this.buildPriceRanges(min, max);
 
-    const rangesWithCount = await Promise.all(
-      ranges.map(async (range) => {
-        const count = await this.getProductCount({
-          prix: {
-            gte: range.min,
-            ...(range.max !== null && { lt: range.max }),
-          },
-        });
-        return { ...range, count };
-      })
-    );
+    const rangesWithCount = ranges.map((range) => ({
+      ...range,
+      count: prices.filter((p) => p >= range.min && (range.max === null || p < range.max)).length,
+    }));
 
     return {
       ranges: rangesWithCount.filter((range) => range.count > 0),
       stats: {
-        min: prixStats._min.prix,
-        max: prixStats._max.prix,
-        avg: prixStats._avg.prix,
+        min: prices.length ? min : null,
+        max: prices.length ? max : null,
+        avg,
       },
     };
   }
